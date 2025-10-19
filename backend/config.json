@@ -1,3 +1,4 @@
 {
-  "VERSION": "v22.0"
+  "VERSION": "v22.0",
+  "GCP_PROJECT_ID": "vernacular-voice-bot"
 }

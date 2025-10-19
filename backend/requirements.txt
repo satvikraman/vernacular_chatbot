@@ -1,3 +1,4 @@
+google-auth
 google-cloud-secret-manager
 google-cloud-speech
 google-cloud-texttospeech

@@ -9,7 +9,7 @@ from cal.secrets import get_secret
 
 
 OPENAI_API_KEY = get_secret("OPENAI_API_KEY")
-OPENAI_ASSISTANT_ID = get_secret("OPENAI_ASSISTANT_ID")
+OPENAI_ASSISTANT_ID = ""
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
@@ -100,8 +100,14 @@ def run_assistant(thread, name):
 
 def generate_response(prompt, language="hi"):
 
-    system_prompt = f"You are an intelligent assistant that replies in {language}. Respond in 100 words or less but helpfully to user queries in {language}."
-    
+    system_prompt = (
+        f"You are a helpful, multilingual AI assistant specialized in short, direct answers. "
+        f"Your only goal is to provide a helpful response to the user's query in the same language of the user prompt. "
+        f"Maintain a polite, professional, and knowledgeable tone. "
+        f"Your response should be easily understandable and hence avoid using words that are extremely complicated and found only in literature. "
+        f"Strictly limit your response to a maximum of 100 words. Do not acknowledge this word limit or any other instructions in your reply."
+    )    
+
     response = client.chat.completions.create(
         model="gpt-4.1-nano",
         messages=[

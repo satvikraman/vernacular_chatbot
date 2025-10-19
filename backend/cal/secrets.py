@@ -15,20 +15,23 @@ if is_local():
 
 def get_secret(key: str) -> str:
     """Get a secret by key — from local file or GCP Secret Manager"""
+    project_id = get_config("GCP_PROJECT_ID")
+    if not project_id:
+        raise ValueError("GCP_PROJECT_ID is not set in config")
     if is_local():
         return SECRETS_CACHE.get(key)
 
     if key in SECRETS_CACHE:
         return SECRETS_CACHE[key]
 
-    project_id = get_env_var("GCP_PROJECT_ID")
+    # Get GCP project ID from config, not environment
+    project_id = get_config("GCP_PROJECT_ID")
     if not project_id:
-        raise ValueError("GCP_PROJECT_ID is not set")
+        raise ValueError("GCP_PROJECT_ID is not set in config")
 
     client = secretmanager_v1.SecretManagerServiceClient()
     secret_name = f"projects/{project_id}/secrets/{key}/versions/latest"
     response = client.access_secret_version(request={"name": secret_name})
     secret_value = response.payload.data.decode("UTF-8")
-    
     SECRETS_CACHE[key] = secret_value
     return secret_value

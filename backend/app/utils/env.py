@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 def is_local():
-    ENV = os.getenv("ENVIRONMENT", "LOCAL")
+    ENV = os.getenv("ENVIRONMENT", "CLOUD")
     return ENV.upper() == "LOCAL"
 
 def get_env_var(key, default=None):
