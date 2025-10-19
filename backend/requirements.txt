@@ -1,0 +1,6 @@
+google-cloud-secret-manager
+google-cloud-speech
+google-cloud-texttospeech
+google-cloud-firestore
+python-dotenv
+openai
