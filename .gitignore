@@ -1,4 +1,10 @@
+# Frontend related files to ignore
+/frontend/node_modules
+
+# Backend related files to ignore 
 secrets.local.json
+*.pyc
+
 # Terraform generated files
 .terraform/
 *.tfstate
