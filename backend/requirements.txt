@@ -1,6 +1,8 @@
+google-api-core
 google-auth
 google-cloud-secret-manager
 google-cloud-speech
+google-cloud-storage
 google-cloud-texttospeech
 google-cloud-firestore
 python-dotenv

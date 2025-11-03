@@ -11,7 +11,7 @@ variable "project_id" {
 variable "region" {
   description = "The GCP region to deploy the function (e.g., us-central1)."
   type        = string
-  default     = "us-central1"
+  default     = "asia-south1"
 }
 
 variable "function_name" {
@@ -23,9 +23,14 @@ variable "function_name" {
 variable "entry_point" {
   description = "The name of the Python function to execute (from main.py)."
   type        = string
-  default     = "hello_world"
+  default     = "telegram_webhook"
 }
 
+variable "audio_log_bucket_name" {
+  description = "Name for the GCS bucket to store user audio files."
+  type        = string
+  default     = "vernacular-bot-audio-logs" 
+}
 
 # 2. PROVIDER CONFIGURATION
 # --------------------------------------------------------------------------------
@@ -63,6 +68,28 @@ resource "google_storage_bucket" "source_bucket" {
   location      = var.region
   force_destroy = true # Allows Terraform to destroy the bucket even if it has files
   uniform_bucket_level_access = true
+}
+
+# 3.5. CLOUD STORAGE BUCKET FOR USER AUDIO LOGS
+# --------------------------------------------------------------------------------
+
+resource "google_storage_bucket" "audio_log_bucket" {
+  # NOTE: Bucket names MUST be globally unique. If the default is taken, 
+  # you'll need to update the `audio_log_bucket_name` variable.
+  name                        = var.audio_log_bucket_name
+  location                    = var.region
+  force_destroy               = true # Set to 'true' if you want Terraform to clean up the bucket when destroyed.
+  uniform_bucket_level_access = true
+  
+  # Configure retention and lifecycle rules if needed (e.g., delete files after 90 days)
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 30 # Delete files older than 30 days
+    }
+  }
 }
 
 # 4. UPLOAD FUNCTION SOURCE CODE
@@ -114,6 +141,9 @@ resource "google_cloudfunctions2_function" "python_function" {
     ingress_settings        = "ALLOW_ALL"
     service_account_email   = google_service_account.sa_for_function.email
     timeout_seconds         = 60
+    environment_variables = {
+      GCS_AUDIO_LOG_BUCKET = google_storage_bucket.audio_log_bucket.name
+    }    
   }
 }
 
@@ -123,12 +153,41 @@ resource "google_project_iam_member" "function_secret_accessor" {
   member  = "serviceAccount:${google_service_account.sa_for_function.email}"
 }
 
+# 6.5. GRANT STORAGE OBJECT CREATOR ROLE TO FUNCTION SERVICE ACCOUNT
+# --------------------------------------------------------------------------------
+
+resource "google_storage_bucket_iam_member" "audio_log_bucket_writer" {
+  bucket = google_storage_bucket.audio_log_bucket.name
+  role   = "roles/storage.objectCreator" # Allows the SA to create (upload) new objects
+  member = "serviceAccount:${google_service_account.sa_for_function.email}"
+}
+
+resource "google_storage_bucket_iam_member" "audio_log_bucket_reader" {
+  bucket = google_storage_bucket.audio_log_bucket.name
+  role   = "roles/storage.objectViewer" # Allows the SA to view (read/debug) objects
+  member = "serviceAccount:${google_service_account.sa_for_function.email}"
+}
+
+resource "google_project_iam_member" "function_firestore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.sa_for_function.email}"
+}
+
 # 7. OUTPUT THE FUNCTION URL
 # --------------------------------------------------------------------------------
 
 output "function_url" {
   description = "The URL of the deployed Cloud Function."
   value       = google_cloudfunctions2_function.python_function.service_config[0].uri
+}
+
+# 7.5. OUTPUT THE AUDIO LOG BUCKET NAME
+# --------------------------------------------------------------------------------
+
+output "audio_log_bucket_name" {
+  description = "The name of the GCS bucket used for user audio logs."
+  value       = google_storage_bucket.audio_log_bucket.name
 }
 
 # 8. ALLOW PUBLIC/UNAUTHENTICATED ACCESS

@@ -8,4 +8,9 @@ def is_local():
     return ENV.upper() == "LOCAL"
 
 def get_env_var(key, default=None):
-    return os.getenv(key, default)
+    try: 
+        env_val = os.getenv(key, default)
+    except KeyError:
+        print(f"[WARNING] {key} environment variable not set. Using default")        
+        env_val = default   
+    return env_val

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from openai import OpenAI
+import json
 import logging
 import os
 import shelve
@@ -101,12 +102,17 @@ def run_assistant(thread, name):
 def generate_response(prompt, language="hi"):
 
     system_prompt = (
-        f"You are a helpful, multilingual AI assistant specialized in short, direct answers. "
-        f"Your only goal is to provide a helpful response to the user's query in the same language of the user prompt. "
-        f"Maintain a polite, professional, and knowledgeable tone. "
+        f"You are a helpful multilingual assistant. "
+        f"First, detect the language of the user prompt. "
+        f"Return the detected language name in English, all lowercase "
+        f"(for example: 'hindi', 'english', 'bengali', 'marathi', 'tamil', 'telugu'). "
+        f"Then, provide a short and direct response (maximum 250 words) in the same language. "
+        f"Return your output in JSON format with two keys: "
+        f"`language` for the detected language, "
+        f"and `answer` for your actual response."
         f"Your response should be easily understandable and hence avoid using words that are extremely complicated and found only in literature. "
-        f"Strictly limit your response to a maximum of 100 words. Do not acknowledge this word limit or any other instructions in your reply."
-    )    
+        f"Do not acknowledge this word limit or any other instructions in your reply."
+    ) 
 
     response = client.chat.completions.create(
         model="gpt-4.1-nano",
@@ -116,8 +122,13 @@ def generate_response(prompt, language="hi"):
         ],
         temperature=0.7
     )
+    content = response.choices[0].message.content
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError:
+        result = {"language": None, "answer": content}
 
-    return response.choices[0].message.content
+    return result
 
 
 def transcribe_audio_with_openai(audio_path):

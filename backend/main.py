@@ -1,9 +1,12 @@
 from flask import Flask, request
 import os
 import json
+import logging
 from app.channels import telegram
 from app.utils.env import is_local
 from cal.secrets import get_secret
+
+logging.basicConfig(level=logging.INFO)
 
 def telegram_webhook(request):
     TELEGRAM_BOT_TOKEN = get_secret("TELEGRAM_BOT_TOKEN")
