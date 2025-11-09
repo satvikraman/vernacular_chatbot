@@ -6,12 +6,12 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, ChartTooltip, ChartLegend);
 
 const styles = {
-    sectionTitle: { fontSize: '2em', marginBottom: '20px' },
-    kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '40px', marginBottom: '40px' },
-    kpiCard: { padding: '20px', backgroundColor: '#374151', borderRadius: '8px' },
-    sliderContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', margin: '20px 0 40px' },
-    sliderButton: { padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
-    sliderLabel: { fontSize: '1.2em' },
+    sectionTitle: { fontSize: '2em', marginBottom: '0px', marginTop: '0px' },
+    kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' },
+    kpiCard: { padding: '12px', backgroundColor: '#374151', borderRadius: '8px', margin: 0 },
+    sliderContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: '0px' },
+    sliderButton: { padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
+    sliderLabel: { fontSize: '1em' },
 };
 
 // Helper to format date from YYYYMMDD to a readable format
@@ -22,7 +22,11 @@ const formatDate = (dateString) => {
     return `${new Date(`${year}-${month}-${day}`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 };
 
+// Helper function to camel case a string (capitalize first letter)
+const camelCase = str => str.charAt(0).toUpperCase() + str.slice(1);
+
 const WEEK_WINDOW_SIZE = 7;
+const SHOW_ACTIVE_USERS = false; // Feature flag to toggle active users display
 
 const WeeklyTrends = ({ weeklyData }) => {
     // weeklyData is sorted from latest to oldest
@@ -40,29 +44,29 @@ const WeeklyTrends = ({ weeklyData }) => {
     // --- Chart Data Preparation ---
 
     const labels = currentWindowData.map(w => formatDate(w.week_start_date));
-    const interactionVolumes = currentWindowData.map(w => w.interaction_volume);
-    
+    const interactionsData = currentWindowData.map(w => w.interactions);
+    const activeUsersData = currentWindowData.map(w => w.active_users);
+
     // KPI 1 & 2: Line Graph Data
     const trendLineData = {
         labels,
         datasets: [
             {
                 label: 'Total Interactions',
-                data: interactionVolumes,
+                data: interactionsData,
                 borderColor: '#3b82f6',
                 backgroundColor: 'rgba(59, 130, 246, 0.2)',
                 fill: true,
                 yAxisID: 'y1',
             },
-            {
+            ...(SHOW_ACTIVE_USERS ? [{
                 label: 'Active Users',
-                // NOTE: The schema is missing Active Users per week, so we'll simulate it for now.
-                data: interactionVolumes.map(v => Math.round(v * 0.5)), 
+                data: activeUsersData,
                 borderColor: '#10b981',
                 backgroundColor: 'transparent',
                 pointBorderColor: '#10b981',
                 yAxisID: 'y2',
-            },
+            }] : []),
         ],
     };
 
@@ -85,7 +89,7 @@ const WeeklyTrends = ({ weeklyData }) => {
             .sort(([, a], [, b]) => b.total - a.total)
             .slice(0, 5); // Top 5 for the chart
 
-        const chartLabels = sortedLangs.map(([lang]) => lang);
+        const chartLabels = sortedLangs.map(([lang]) => camelCase(lang));
         const voiceData = sortedLangs.map(([, data]) => data.voice);
         const textData = sortedLangs.map(([, data]) => data.text);
 
@@ -137,60 +141,71 @@ const WeeklyTrends = ({ weeklyData }) => {
     
     return (
         <section>
-            <h2 style={styles.sectionTitle}>Weekly Trends</h2>
-            
-            {/* Slider Controls */}
-            <div style={styles.sliderContainer}>
-                <button 
-                    onClick={prevWindow} 
-                    disabled={windowIndex === totalWindows - 1}
-                    style={styles.sliderButton}
-                >
-                    &lt; Older
-                </button>
-                <span style={styles.sliderLabel}>
-                    Showing: **{windowStart}** to **{windowEnd}** ({weeklyData.length} total weeks available)
-                </span>
-                <button 
-                    onClick={nextWindow} 
-                    disabled={windowIndex === 0}
-                    style={styles.sliderButton}
-                >
-                    Newer &gt;
-                </button>
+            {/* Header and Slider Controls horizontally stacked */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '8px' }}>
+                <h2 style={styles.sectionTitle}>Weekly Trends</h2>
+                <div style={styles.sliderContainer}>
+                    <button 
+                        onClick={prevWindow} 
+                        disabled={windowIndex === totalWindows - 1}
+                        style={styles.sliderButton}
+                    >
+                        &lt; Older
+                    </button>
+                    <span style={styles.sliderLabel}>
+                        Showing: <b>{windowStart}</b> to <b>{windowEnd}</b> ({weeklyData.length} total weeks available)
+                    </span>
+                    <button 
+                        onClick={nextWindow} 
+                        disabled={windowIndex === 0}
+                        style={styles.sliderButton}
+                    >
+                        Newer &gt;
+                    </button>
+                </div>
             </div>
 
-            {/* KPI 1 & 2: Total Interactions & Active Users (Line Graph) */}
-            <div style={{...styles.kpiCard, marginBottom: '40px', height: '400px'}}>
-                <h3 style={{ marginBottom: '15px' }}>Weekly Interaction Volume & Active Users</h3>
-                <Line 
-                    data={trendLineData} 
-                    options={{ 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        scales: {
-                            y1: { 
-                                type: 'linear', position: 'left', title: { display: true, text: 'Interactions', color: '#3b82f6' }, 
-                                grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#3b82f6' }
+            {/* KPI 1 & 2: Horizontally stacked */}
+            <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '10px' }}>
+                {/* KPI 1: Total Interactions (Line Graph) */}
+                <div style={{...styles.kpiCard, marginBottom: 0, height: '340px', flex: 1}}>
+                    <h3 style={{ marginBottom: '15px' }}>
+                        Weekly Interaction Volume
+                        {SHOW_ACTIVE_USERS ? ' & Active Users' : ''}
+                    </h3>
+                    <Line 
+                        data={trendLineData} 
+                        options={{ 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y1: { 
+                                    type: 'linear', position: 'left', title: { display: true, text: 'Interactions', color: '#3b82f6' }, 
+                                    grid: { color: 'rgba(255,255,255,0.1)' }, 
+                                    ticks: { color: '#3b82f6', beginAtZero: true },
+                                    min: 0
+                                },
+                                ...(SHOW_ACTIVE_USERS ? {
+                                    y2: { 
+                                        type: 'linear', position: 'right', title: { display: true, text: 'Users', color: '#10b981' }, 
+                                        grid: { drawOnChartArea: false }, ticks: { color: '#10b981', beginAtZero: true },
+                                        min: 0
+                                    }
+                                } : {}),
+                                x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: 'white' } }
                             },
-                            y2: { 
-                                type: 'linear', position: 'right', title: { display: true, text: 'Users', color: '#10b981' }, 
-                                grid: { drawOnChartArea: false }, ticks: { color: '#10b981' }
-                            },
-                            x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: 'white' } }
-                        },
-                        plugins: { legend: { labels: { color: 'white' } } }
-                    }}
-                />
-            </div>
-            
-            {/* KPI 4: Language Distribution with Modality Stacked Bar Chart */}
-            <div style={{...styles.kpiCard, height: '400px'}}>
-                <h3 style={{ marginBottom: '15px' }}>Top Languages by Interactions (Modality Stacked)</h3>
-                <Bar 
-                    data={languageData} 
-                    options={chartOptions}
-                />
+                            plugins: { legend: { labels: { color: 'white' } } }
+                        }}
+                    />
+                </div>
+                {/* KPI 2: Language Distribution with Modality Stacked Bar Chart */}
+                <div style={{...styles.kpiCard, height: '340px', flex: 1}}>
+                    <h3 style={{ marginBottom: '15px' }}>Top Languages by Interactions (Modality Stacked)</h3>
+                    <Bar 
+                        data={languageData} 
+                        options={chartOptions}
+                    />
+                </div>
             </div>
 
         </section>

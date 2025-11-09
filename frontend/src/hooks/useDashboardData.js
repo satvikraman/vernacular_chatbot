@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config'; // Import the initialized Firestore DB
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { query, where } from 'firebase/firestore';
 
 const PUBLIC_STATS_COLLECTION = "public_stats";
 const OVERALL_SUMMARY_DOC = "overall_summary";
@@ -27,7 +28,21 @@ export const useDashboardData = () => {
                 // NOTE: This is a hacky way to exclude one document, usually you'd filter. 
                 // Since your week documents are named with a prefix, we'll fetch everything
                 // and filter/sort in the code.
-                const querySnapshot = await getDocs(weeklyCollectionRef);
+                // const querySnapshot = await getDocs(weeklyCollectionRef);
+
+                // Define the start date in 'YYYYMMDD' format for filtering
+                // 30 Jun 2025 is '20250630'
+                const startDateString = '20250630'; 
+
+                // Firestore query to get documents where 'week_start_date' is greater than or equal to '20250630'
+                // This leverages string comparison on the server side, which works for 'YYYYMMDD' format.
+                const q = query(
+                    weeklyCollectionRef, 
+                    where('week_start_date', '>=', startDateString)
+                );
+
+                // Fetch the documents using the new query
+                const querySnapshot = await getDocs(q);                
 
                 let weeklyDataArray = [];
                 querySnapshot.forEach(doc => {

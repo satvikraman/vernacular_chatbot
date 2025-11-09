@@ -33,14 +33,14 @@ function App() {
     return (
         <div style={styles.container}>
             {/* Hero Section */}
-            <Hero />
+            {/* <Hero /> */}
             
-            <div style={styles.divider} />
+            {/*<div style={styles.divider} />*/}
 
             {/* Overall Stats */}
             <ImpactAtAGlance overallData={data.overall} />
 
-            <div style={styles.divider} />
+            {/*<div style={styles.divider} />*/}
             
             {/* Weekly Trends with Slider */}
             <WeeklyTrends weeklyData={data.weekly} />
